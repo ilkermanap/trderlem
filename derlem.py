@@ -43,14 +43,19 @@ class AnaSozluk(Veritabani):
         if (yeni is True) or (os.path.isfile(dosya) is False):
             self.sema("CREATE TABLE sozcukler (sozcuk TEXT, frekans INT)")
 
-    def ekle(self, sozcuk):
+    def liste_ekle(self, liste):
+        for kelime, sayi_ in liste.items():
+            print kelime, sayi_
+            self.ekle(kelime, sayi = sayi_)
+
+    def ekle(self, sozcuk, sayi =1):
         kelime, frekans = self.kontrol(sozcuk)
         if kelime is not None:
             if frekans == 0:
                 sorgu_cumlesi = 'insert into sozcukler values("%s", 1) ' % kelime
                 self.sorgu(sorgu_cumlesi)
             else:
-                sorgu_cumlesi = "update sozcukler set frekans = %d where sozcuk = '%s'  " % (frekans + 1, kelime)
+                sorgu_cumlesi = "update sozcukler set frekans = %d where sozcuk = '%s'  " % (frekans + sayi, kelime)
                 self.sorgu(sorgu_cumlesi)
 
     def kontrol(self, sozcuk):
@@ -128,7 +133,7 @@ class Derlem:
                             k = kelime.strip(AYRACLAR)
                             sozcukler.append(k)
                     satir0 = ""
-
+        temp = {}
         for sozcuk in sozcukler:
             if (sozcuk == "") or (sozcuk.isdigit()):
                 continue
@@ -142,7 +147,23 @@ class Derlem:
                 hatalar.append(sozcuk)
                 continue
             sozcuk = sozcuk.lower()
-            self.anasozluk.ekle(sozcuk)
+            if sozcuk in temp:
+                temp[sozcuk] += 1
+            else:
+                temp[sozcuk] = 1
+        self.anasozluk.liste_ekle(temp)
+
+
+
+class PDFDerlem(Derlem):
+    def __init__(self, hedef):
+        #TODO duzgun turkce metin cikarabilen bir pdf modulu bulmak gerek.
+        import pyPdf
+        icerik = ""
+        pdf = pyPdf.PdfFileReader(open(hedef,"rb"))
+        for sayfa in pdf.pages:
+            icerik += sayfa.extractText()
+        Derlem.__init__(self, icerik.encode("utf8").splitlines(True))
 
 
 class HTMLDerlem(Derlem):
@@ -167,4 +188,5 @@ class HTMLDerlem(Derlem):
 
 
 if __name__ == '__main__':
-    dr = HTMLDerlem("http://manap.se/test.txt")
+    htmltest = HTMLDerlem("http://manap.se/test.txt")
+    #pdftest = PDFDerlem("test.pdf")
